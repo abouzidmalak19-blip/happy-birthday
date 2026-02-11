@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Birthday Matrix</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background-color: #000;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .content {
+            position: relative;
+            z-index: 10;
+            text-align: center;
+        }
+
+        .heart-container {
+            font-size: 150px;
+            animation: heartbeat 1.5s ease-in-out;
+            color: #ff1493;
+            text-shadow: 0 0 20px #ff1493;
+        }
+
+        @keyframes heartbeat {
+            0%, 100% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
+        .countdown {
+            font-size: 200px;
+            font-weight: bold;
+            color: #ff69b4;
+            text-shadow: 0 0 30px #ff69b4, 0 0 60px #ff69b4;
+            animation: countdownPulse 1s ease-in-out;
+        }
+
+        @keyframes countdownPulse {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
+        .happy-text {
+            font-size: 120px;
+            font-weight: bold;
+            color: #ff69b4;
+            text-shadow: 0 0 30px #ff69b4, 0 0 60px #ff69b4;
+            letter-spacing: 20px;
+            animation: glitch 0.5s ease-in-out, fadeInScale 1s ease-in-out;
+        }
+
+        @keyframes fadeInScale {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes glitch {
+            0%, 100% { transform: translate(0); }
+            25% { transform: translate(-5px, 5px); }
+            50% { transform: translate(5px, -5px); }
+            75% { transform: translate(-5px, -5px); }
+        }
+
+        .birthday-text {
+            font-size: 80px;
+            color: #ff69b4;
+            text-shadow: 0 0 20px #ff69b4;
+            margin-top: 20px;
+            animation: fadeIn 1s ease-in-out 0.5s both;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .cats-container {
+            margin-top: 40px;
+            animation: bounceIn 1s ease-in-out;
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0) translateY(100px); opacity: 0; }
+            50% { transform: scale(1.1) translateY(-20px); }
+            100% { transform: scale(1) translateY(0); opacity: 1; }
+        }
+
+        .cat {
+            display: inline-block;
+            font-size: 80px;
+            margin: 0 20px;
+            animation: wiggle 2s ease-in-out infinite;
+        }
+
+        .cat:nth-child(2) {
+            animation-delay: 0.3s;
+        }
+
+        @keyframes wiggle {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-5deg); }
+            75% { transform: rotate(5deg); }
+        }
+
+        .cake {
+            font-size: 100px;
+            display: inline-block;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .start-button {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 100;
+            padding: 30px 60px;
+            font-size: 32px;
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(45deg, #ff1493, #ff69b4);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            box-shadow: 0 0 30px #ff1493;
+            transition: all 0.3s;
+        }
+
+        .start-button:hover {
+            transform: translate(-50%, -50%) scale(1.1);
+            box-shadow: 0 0 50px #ff1493;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .firework {
+            position: absolute;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            animation: fireworkExplode 1s ease-out forwards;
+        }
+
+        @keyframes fireworkExplode {
+            0% {
+                transform: translate(0, 0);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(var(--x), var(--y));
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    
+    <button class="start-button" id="startBtn">🎉 Click Me 🎉</button>
+    
+    <div class="content hidden" id="content"></div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const startBtn = document.getElementById('startBtn');
+        const content = document.getElementById('content');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // Matrix rain effect
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*()';
+        const fontSize = 16;
+        const columns = canvas.width / fontSize;
+        const drops = [];
+
+        for (let i = 0; i < columns; i++) {
+            drops[i] = Math.random() * -100;
+        }
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#0f0';
+            ctx.font = fontSize + 'px monospace';
+
+            for (let i = 0; i < drops.length; i++) {
+                const text = chars[Math.floor(Math.random() * chars.length)];
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+
+        let matrixInterval;
+
+        function startMatrixRain() {
+            matrixInterval = setInterval(drawMatrix, 33);
+        }
+
+        function createFireworks() {
+            const colors = ['#ff1493', '#ff69b4', '#ff00ff', '#00ffff', '#ffff00'];
+            
+            for (let i = 0; i < 5; i++) {
+                setTimeout(() => {
+                    const x = Math.random() * window.innerWidth;
+                    const y = Math.random() * window.innerHeight * 0.5;
+                    
+                    for (let j = 0; j < 30; j++) {
+                        const firework = document.createElement('div');
+                        firework.className = 'firework';
+                        firework.style.left = x + 'px';
+                        firework.style.top = y + 'px';
+                        firework.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                        
+                        const angle = (Math.PI * 2 * j) / 30;
+                        const velocity = 100 + Math.random() * 100;
+                        firework.style.setProperty('--x', Math.cos(angle) * velocity + 'px');
+                        firework.style.setProperty('--y', Math.sin(angle) * velocity + 'px');
+                        
+                        document.body.appendChild(firework);
+                        
+                        setTimeout(() => firework.remove(), 1000);
+                    }
+                }, i * 800);
+            }
+        }
+
+        function startAnimation() {
+            startBtn.classList.add('hidden');
+            content.classList.remove('hidden');
+            startMatrixRain();
+
+            // Séquence 1: Heart
+            content.innerHTML = '<div class="heart-container">❤️</div>';
+            
+            // Séquence 2: Countdown 3
+            setTimeout(() => {
+                content.innerHTML = '<div class="countdown">3</div>';
+            }, 1500);
+
+            // Séquence 3: Countdown 2
+            setTimeout(() => {
+                content.innerHTML = '<div class="countdown">2</div>';
+            }, 2500);
+
+            // Séquence 4: Countdown 1
+            setTimeout(() => {
+                content.innerHTML = '<div class="countdown">1</div>';
+            }, 3500);
+
+            // Séquence 5: HAPPY
+            setTimeout(() => {
+                content.innerHTML = '<div class="happy-text">HAPPY</div>';
+                createFireworks();
+            }, 4500);
+
+            // Séquence 6: BIRTHDAY avec les chats
+            setTimeout(() => {
+                content.innerHTML = `
+                    <div class="happy-text">HAPPY</div>
+                    <div class="birthday-text">BIRTHDAY</div>
+                    <div class="birthday-text" style="font-size: 60px; margin-top: 10px;">ZINNOBA</div>
+                    <div class="cats-container">
+                        <span class="cat">😸</span>
+                        <span class="cake">🎂</span>
+                        <span class="cat">😺</span>
+                    </div>
+                `;
+                createFireworks();
+            }, 6000);
+
+            // Fireworks continus
+            setTimeout(() => {
+                setInterval(createFireworks, 3000);
+            }, 7000);
+        }
+
+        startBtn.addEventListener('click', startAnimation);
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+    </script>
+</body>
+</html>
